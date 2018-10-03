@@ -1,6 +1,6 @@
 """Finder
 Finder is a module that will search for mp3 files in Music directory, and print
-is information"""
+its information"""
 
 __author__ = "Mauricio Chavéz Olea"
 __license__ = "GNU General Public License v3.0"
