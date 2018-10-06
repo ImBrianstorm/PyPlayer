@@ -15,6 +15,7 @@ class TestSong(unittest.TestCase):
                                         "\nTitle: Arabella" + 
                                         "\nAlbum: AM" +
                                         "\nRecording time: 2013" +
+                                        "\nGenre: Rock" +
                                         "\nTrack number: 4/10")
 
     def test_get_attr(self):

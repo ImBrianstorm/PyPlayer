@@ -7,7 +7,7 @@ __license__ = "GNU General Public License v3.0"
 __version__ = "1.0"
 __email__ = "mauriciochavez@ciencias.unam.mx"
 
-from mutagen.id3 import ID3, TPE1, TIT2, TALB, TDRC, TRCK
+from mutagen.id3 import ID3, TPE1, TIT2, TALB, TDRC, TCON, TRCK
 
 class Song():
     """
@@ -19,6 +19,7 @@ class Song():
         title: Song's title
         album: Song's album
         recording_time: Song's recording time
+        genre: Song's genre
         track_number: Track number
     """
     def __init__(self,filething):
@@ -31,6 +32,7 @@ class Song():
         self.__dict__['title'] = str(self.tags['TIT2']) if 'TIT2' in self.tags else 'Unknown'
         self.__dict__['album'] = str(self.tags['TALB']) if 'TALB' in self.tags else 'Unknown'
         self.__dict__['recording_time'] = str(self.tags['TDRC']) if 'TDRC' in self.tags else '2000'
+        self.__dict__['genre'] = str(self.tags['TCON']) if 'TCON' in self.tags else 'Unknown'
         self.__dict__['track_number'] = str(self.tags['TRCK']) if 'TRCK' in self.tags else '1/1'
     
     def __str__(self):
@@ -39,6 +41,7 @@ class Song():
                 "\nTitle: " + self.title + 
                 "\nAlbum: " + self.album +
                 "\nRecording time: " + self.recording_time +
+                "\nGenre: " + self.genre +
                 "\nTrack number: " + self.track_number)
 
     def __getattr__(self,attr):
@@ -83,6 +86,8 @@ class Song():
                 self.tags.add(TALB(encoding=3, text=value))
             elif attr == 'recording_time':
                 self.tags.add(TDRC(encoding=3, text=value))
+            elif attr == 'genre':
+                self.tags.add(TCON(encoding=3, text=value))
             elif attr == 'track_number':
                 self.tags.add(TRCK(encoding=3, text=value))
 
