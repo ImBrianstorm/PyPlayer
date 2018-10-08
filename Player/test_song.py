@@ -16,7 +16,10 @@ class TestSong(unittest.TestCase):
                                         "\nAlbum: AM" +
                                         "\nRecording time: 2013" +
                                         "\nGenre: Rock" +
-                                        "\nTrack number: 4/10")
+                                        "\nTrack number: 4" +
+                                        "\nAlbum tracks number: 10"+
+                                        "\nSong path: ./TestResources/Arabella.mp3" + 
+                                        "\nAlbum path: ./TestResources/")
 
     def test_get_attr(self):
         self.assertEqual(self.song.performer,'Arctic Monkeys')

@@ -33,8 +33,9 @@ class SongMiner:
 		database = MusicDatabase()
 		for songpath in self.songpaths:
 			song = Song(songpath)
-			database.insert_into_table('performers',"'" + song.performer + "'" + ", 2",'name, id_type')
-			database.print_table('performers')
+			database.insert_song(song)
+		database.print_table('performers')
+		database.close()
 
 if __name__ == '__main__':
 	miner = SongMiner()
