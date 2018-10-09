@@ -1,3 +1,4 @@
+from song import Song
 import sqlite3
 
 class MusicDatabase:
@@ -17,7 +18,7 @@ class MusicDatabase:
 		self.con.execute(create_string)
 		self.con.commit()
 
-	def insert_into_table(self, table_name,values_tuple,columns="",conditional=""):
+	def insert_into_table(self,table_name,values_tuple,columns="",conditional=""):
 		insert_string = "INSERT INTO " + table_name + " "
 		if columns != "":
 			insert_string += "(" + columns + ") "
@@ -39,7 +40,6 @@ class MusicDatabase:
 			insert_string += str(values_tuple[-1]) + ")"
 		if conditional != "":
 			insert_string += " WHERE " + conditional
-		print(">>>" + insert_string)
 		try:
 			with self.con:
 				self.con.execute(insert_string)
@@ -48,6 +48,7 @@ class MusicDatabase:
 			print("An error while inserting into table has ocurred...")
 
 	def create_database(self):
+
 		self.create_table("types","id_type INTEGER PRIMARY KEY","description TEXT")
 
 		self.insert_into_table("types",(0,"Person"))
@@ -98,10 +99,52 @@ class MusicDatabase:
 			print(row)
 
 	def insert_song(self,song):
-		self.insert_into_table('performers',(2,song.performer),' id_type,name')
-		self.insert_into_table('albums',(song.albumpath,song.album,song.recording_time),'path,name,year')
-		self.insert_into_table('rolas',(song.songpath,song.title,song.track_number,
+		count = 0
+		insert_string = "SELECT COUNT(name) FROM performers WHERE name='{}'".format(song.performer)
+		for row in self.con.execute(insert_string):
+			count = row[0]
+		
+		if count == 0:
+			self.insert_into_table('performers',(2,song.performer),' id_type,name')
+
+		count = 0
+		insert_string = "SELECT COUNT(name) FROM albums WHERE name='{}' AND path='{}'".format(song.album,
+																							  song.albumpath)
+		for row in self.con.execute(insert_string):
+			count = row[0]
+		
+		if count == 0:
+			self.insert_into_table('albums',(song.albumpath,song.album,song.recording_time),'path,name,year')
+
+		count = 0
+		if "'" in song.title or "'" in song.songpath:
+			insert_string = 'SELECT COUNT(title) FROM rolas WHERE title="{}" AND path="{}"'.format(song.title,
+																								song.songpath)
+		else:
+			insert_string = "SELECT COUNT(title) FROM rolas WHERE title='{}' AND path='{}'".format(song.title,
+																								song.songpath)
+		for row in self.con.execute(insert_string):
+			count = row[0]
+		
+		if count == 0:
+			self.insert_into_table('rolas',(song.songpath,song.title,song.track_number,
 										song.recording_time,song.genre),'path,title,track,year,genre')
 
+	def get_songs_list(self):
+		song_paths = []
+		for row in self.con.execute("SELECT path FROM rolas"):
+			song = Song(row[0])
+			song_paths.append(song)
+		return song_paths
+
+	def search_songs(self,query):
+		songs = []
+		query_tuple = ("%" + query + "%",)
+		for row in self.con.execute("SELECT path FROM rolas WHERE title LIKE ?",query_tuple):
+			song = Song(row[0])
+			songs.append(song)
+		return songs
+
 	def close(self):
+		self.con.commit()
 		self.con.close()
