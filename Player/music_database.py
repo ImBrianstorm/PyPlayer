@@ -8,7 +8,6 @@ class MusicDatabase:
 		else:
 			self.con = sqlite3.connect(database_name)
 		self.c = self.con.cursor()
-		self.create_database()
 
 	def create_table(self,table_name,*args):
 		create_string = "CREATE TABLE IF NOT EXISTS " + table_name + "("
@@ -45,7 +44,7 @@ class MusicDatabase:
 				self.con.execute(insert_string)
 				self.con.commit()
 		except sqlite3.IntegrityError:
-			print("An error while inserting into table has ocurred...")
+			pass
 
 	def create_database(self):
 
