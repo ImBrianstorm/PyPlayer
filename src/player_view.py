@@ -8,7 +8,8 @@ class PlayerView(Gtk.ApplicationWindow):
 
     __gsignals__ = {
         'start-querying': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'start-mining': (GObject.SIGNAL_RUN_LAST, None, ())
+        'start-mining': (GObject.SIGNAL_RUN_LAST, None, ()),
+        'clicked_song': (GObject.SIGNAL_RUN_LAST, None, (str,))
     }
 
     def __init__(self,app):
@@ -28,6 +29,13 @@ class PlayerView(Gtk.ApplicationWindow):
         self.header_bar.set_subtitle("Player built in Python")
         self.set_titlebar(self.header_bar)
 
+        self.edit_button = Gtk.Button()
+        icon = Gio.ThemedIcon(name="edit")
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        self.edit_button.add(image)
+        self.header_bar.pack_start(self.edit_button)
+        self.edit_button.connect('clicked',self.edit_button_pressed)
+
         self.mining_button = Gtk.Button()
         icon = Gio.ThemedIcon(name="system-run-symbolic")
         image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
@@ -41,18 +49,21 @@ class PlayerView(Gtk.ApplicationWindow):
         self.search_entry = Gtk.SearchEntry()
         self.search_entry.connect('search-changed', self.search)
         self.header_bar.pack_end(self.search_entry)
-        
+
         self.grid = Gtk.Grid()
         self.grid.set_column_homogeneous(True)
         self.grid.set_row_homogeneous(True)
         self.add(self.grid)
 
-        self.song_model = Gtk.ListStore(str, str, str, str, str, str)
+        self.song_model = Gtk.ListStore(str, str, str, str, str, str, str)
 
         self.treeview = Gtk.TreeView(model=self.song_model)
-        for column_title in ["Performer", "Title", "Album","Release Year","Genre","Track Number"]:
+        self.treeview.connect('row-activated',self.row_activated)
+        for column_title in ["Performer", "Title", "Album","Release Year","Genre","Track Number","Path"]:
             cell = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(column_title, cell, text=self.column_counter)
+            if self.column_counter == 6:
+                column.set_visible(False)
             self.treeview.append_column(column)
             self.column_counter += 1
 
@@ -62,8 +73,8 @@ class PlayerView(Gtk.ApplicationWindow):
         self.scrollable_treelist.add(self.treeview)
 
     def append_song_to_tree_view(self,song):
-        song_list = [song.performer, song.title, song.album, str(song.recording_time), song.genre, 
-              str(song.track_number) + "/" + str(song.album_tracks_number)]
+        song_list = [song.performer, song.title, song.album, str(song.recording_time), song.genre,
+              str(song.track_number) + "/" + str(song.album_tracks_number), song.songpath]
         self.song_model.append(song_list)
 
     def delete_all_from_tree_view(self):
@@ -75,8 +86,16 @@ class PlayerView(Gtk.ApplicationWindow):
     def search(self,search_entry,*args):
         self.emit('start-querying',self.search_entry.get_text())
 
+    def row_activated(self,search_entry,*args):
+        model,iter = self.treeview.get_selection().get_selected()
+        path = model[iter][6]
+        self.emit('clicked_song',path)
+
     def mining_button_pressed(self,button,*args):
         self.emit('start-mining')
+
+    def edit_button_pressed(self,button,*args):
+        pass
 
     def show_spinner(self,show):
         if show:

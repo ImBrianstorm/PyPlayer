@@ -2,12 +2,10 @@ from song import Song
 import sqlite3
 
 class MusicDatabase:
-	def __init__(self,database_name="music.db",database_in_ram=False):
-		if database_in_ram:
-			self.con = sqlite3.connect(":memory:")
-		else:
-			self.con = sqlite3.connect(database_name)
-		self.c = self.con.cursor()
+
+	def __init__(self):
+		self.con = sqlite3.connect("music.db")
+		self.table_created = False
 
 	def create_table(self,table_name,*args):
 		create_string = "CREATE TABLE IF NOT EXISTS " + table_name + "("
@@ -16,6 +14,7 @@ class MusicDatabase:
 		create_string += args[-1] + ")"
 		self.con.execute(create_string)
 		self.con.commit()
+		self.table_created = True
 
 	def insert_into_table(self,table_name,values_tuple,columns="",conditional=""):
 		insert_string = "INSERT INTO " + table_name + " "
@@ -47,51 +46,52 @@ class MusicDatabase:
 			pass
 
 	def create_database(self):
+		if not self.table_created:
+			self.create_table("types","id_type INTEGER PRIMARY KEY","description TEXT")
 
-		self.create_table("types","id_type INTEGER PRIMARY KEY","description TEXT")
+			self.insert_into_table("types",(0,"Person"))
+			self.insert_into_table("types",(1,"Group"))
+			self.insert_into_table("types",(2,"Unknown"))
 
-		self.insert_into_table("types",(0,"Person"))
-		self.insert_into_table("types",(1,"Group"))
-		self.insert_into_table("types",(2,"Unknown"))
+			self.create_table("performers","id_performer INTEGER PRIMARY KEY",
+											"id_type INTEGER",
+											"name TEXT",
+											"FOREIGN KEY (id_type) REFERENCES types (id_type)")
 
-		self.create_table("performers","id_performer INTEGER PRIMARY KEY",
-										"id_type INTEGER",
+			self.create_table("persons","id_person INTEGER PRIMARY KEY",
+										"stage_name TEXT",
+										"real_name TEXT",
+										"birth_date TEXT",
+										"death_date TEXT")
+
+			self.create_table("groups","id_group INTEGER PRIMARY KEY",
 										"name TEXT",
-										"FOREIGN KEY (id_type) REFERENCES types (id_type)")
+										"start_date TEXT",
+										"end_date")
 
-		self.create_table("persons","id_person INTEGER PRIMARY KEY",
-									 "stage_name TEXT",
-									 "real_name TEXT",
-									 "birth_date TEXT",
-									 "death_date TEXT")
+			self.create_table("albums","id_album INTEGER PRIMARY KEY",
+										"path TEXT",
+										"name TEXT",
+										"year INTEGER")
 
-		self.create_table("groups","id_group INTEGER PRIMARY KEY",
-									"name TEXT",
-									"start_date TEXT",
-									"end_date")
-
-		self.create_table("albums","id_album INTEGER PRIMARY KEY",
+			self.create_table("rolas","id_rola INTEGER PRIMARY KEY",
+									"id_performer INTEGER",
+									"id_album INTEGER",
 									"path TEXT",
-									"name TEXT",
-									"year INTEGER")
+									"title TEXT",
+									"track INTEGER",
+									"year INTEGER",
+									"genre TEXT",
+									"FOREIGN KEY (id_performer) REFERENCES performers (id_performer)",
+									"FOREIGN KEY (id_album) REFERENCES albums (id_album)")
 
-		self.create_table("rolas","id_rola INTEGER PRIMARY KEY",
-								   "id_performer INTEGER",
-								   "id_album INTEGER",
-								   "path TEXT",
-								   "title TEXT",
-								   "track INTEGER",
-								   "year INTEGER",
-								   "genre TEXT",
-								   "FOREIGN KEY (id_performer) REFERENCES performers (id_performer)",
-								   "FOREIGN KEY (id_album) REFERENCES albums (id_album)")
-
-
-		self.create_table("in_group","id_person INTEGER",
-									  "id_group INTEGER",
-									  "PRIMARY KEY (id_person,id_group)",
-									  "FOREIGN KEY (id_person) REFERENCES persons (id_person)",
-									  "FOREIGN KEY (id_group) REFERENCES groups (id_group)")
+			self.create_table("in_group","id_person INTEGER",
+										"id_group INTEGER",
+										"PRIMARY KEY (id_person,id_group)",
+										"FOREIGN KEY (id_person) REFERENCES persons (id_person)",
+										"FOREIGN KEY (id_group) REFERENCES groups (id_group)")
+			
+			self.table_created = True
 
 	def print_table(self,table_name):
 		for row in self.con.execute("SELECT * FROM " + table_name):
@@ -124,10 +124,17 @@ class MusicDatabase:
 																								song.songpath)
 		for row in self.con.execute(insert_string):
 			count = row[0]
+
+		for row in self.con.execute("SELECT id_performer FROM performers WHERE name= ? ",(song.performer,)):
+			id_performer = row[0]
+
+		for row in self.con.execute("SELECT id_album FROM albums WHERE name= ? ",(song.album,)):
+			id_album = row[0]
 		
 		if count == 0:
-			self.insert_into_table('rolas',(song.songpath,song.title,song.track_number,
-										song.recording_time,song.genre),'path,title,track,year,genre')
+			self.insert_into_table('rolas',(id_performer,id_album,song.songpath,song.title,song.track_number,
+											song.recording_time,song.genre),'id_performer,id_album,path,' +
+											'title,track,year,genre')
 
 	def get_songs_list(self):
 		song_paths = []
@@ -138,8 +145,7 @@ class MusicDatabase:
 
 	def search_songs(self,query):
 		songs = []
-		query_tuple = ("%" + query + "%",)
-		for row in self.con.execute("SELECT path FROM rolas WHERE title LIKE ?",query_tuple):
+		for row in self.con.execute("SELECT path FROM rolas WHERE title LIKE ?",("%" + query + "%",)):
 			song = Song(row[0])
 			songs.append(song)
 		return songs
@@ -147,3 +153,6 @@ class MusicDatabase:
 	def close(self):
 		self.con.commit()
 		self.con.close()
+
+	def get_table_created(self):
+		return self.table_created

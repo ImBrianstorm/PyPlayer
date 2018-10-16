@@ -37,11 +37,11 @@ class Song():
         self.__dict__['album_tracks_number'] = self.get_album_tracks_number()
         self.__dict__['songpath'] = filething
         self.__dict__['albumpath'] = self.get_album_path()
-    
+
     def __str__(self):
         """Returns a string with the song information"""
-        return ("Performer: " + self.performer + 
-                "\nTitle: " + self.title + 
+        return ("Performer: " + self.performer +
+                "\nTitle: " + self.title +
                 "\nAlbum: " + self.album +
                 "\nRecording time: " + str(self.recording_time) +
                 "\nGenre: " + self.genre +
@@ -52,7 +52,7 @@ class Song():
 
     def __getattr__(self,attr):
         """Returns argument's attribute, raises an exception if attribute does not exist
-           
+
            Arguments:
                 attr: attribute to get
         """
@@ -64,8 +64,8 @@ class Song():
 
     def __setattr__(self,attr,value):
         """Sets argument's attribute, replacing it by argument's value, and then
-           adds its respective ID3 tag to mp3 file. Raises an exception if attribute does not exist 
-           
+           adds its respective ID3 tag to mp3 file. Raises an exception if attribute does not exist
+
            Arguments:
                 attr: attribute to set
                 value: new value for attribute
@@ -74,36 +74,7 @@ class Song():
             raise AttributeError("'Song' object has no attribute '%s'" % attr)
         else:
             self.__dict__[attr] = value
-            if attr != 'tags' and attr != 'songpath' and attr != 'albumpath':
-                self.add_tag(attr,value)
 
-    def add_tag(self,attr,value):
-        """Replace specified ID3 tag on mp3 file
-           Arguments:
-                attr: attribute to set on file
-                value: new value for ID3 Tag
-        """
-        if attr in self.__dict__:
-            if attr == 'performer':
-                self.tags.add(TPE1(encoding=3, text=value))
-            elif attr == 'title':
-                self.tags.add(TIT2(encoding=3, text=value))
-            elif attr == 'album':
-                self.tags.add(TALB(encoding=3, text=value))
-            elif attr == 'recording_time':
-                self.tags.add(TDRC(encoding=3, text=value))
-            elif attr == 'genre':
-                self.tags.add(TCON(encoding=3, text=value))
-            elif attr == 'track_number':
-                track = str(value) + "/" + str(self.album_tracks_number)
-                self.tags.add(TRCK(encoding=3, text=track))
-            elif attr == 'album_tracks_number':
-                track = str(self.track_number) + "/" + str(value)
-                self.tags.add(TRCK(encoding=3, text=track))    
-
-            self.tags.save()
-        else:
-            raise AttributeError("'Song' object has no attribute '%s'" % attr)
 
     def get_album_path(self):
         albumpath = self.songpath[::-1]
