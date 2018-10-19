@@ -75,6 +75,10 @@ class Song():
         else:
             self.__dict__[attr] = value
 
+    def __eq__(self, song):
+        if isinstance(song, self.__class__):
+            return self.__dict__ == song.__dict__
+
 
     def get_album_path(self):
         albumpath = self.songpath[::-1]

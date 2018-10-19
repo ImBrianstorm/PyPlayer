@@ -4,7 +4,7 @@ import sqlite3
 class MusicDatabase:
 
 	def __init__(self):
-		self.con = sqlite3.connect("music.db")
+		self.con = sqlite3.connect("music.db",timeout=10)
 		self.table_created = False
 
 	def create_table(self,table_name,*args):
@@ -90,7 +90,7 @@ class MusicDatabase:
 										"PRIMARY KEY (id_person,id_group)",
 										"FOREIGN KEY (id_person) REFERENCES persons (id_person)",
 										"FOREIGN KEY (id_group) REFERENCES groups (id_group)")
-			
+
 			self.table_created = True
 
 	def print_table(self,table_name):
@@ -102,7 +102,6 @@ class MusicDatabase:
 		insert_string = "SELECT COUNT(name) FROM performers WHERE name='{}'".format(song.performer)
 		for row in self.con.execute(insert_string):
 			count = row[0]
-		
 		if count == 0:
 			self.insert_into_table('performers',(2,song.performer),' id_type,name')
 
@@ -111,7 +110,6 @@ class MusicDatabase:
 																							  song.albumpath)
 		for row in self.con.execute(insert_string):
 			count = row[0]
-		
 		if count == 0:
 			self.insert_into_table('albums',(song.albumpath,song.album,song.recording_time),'path,name,year')
 
@@ -125,29 +123,73 @@ class MusicDatabase:
 		for row in self.con.execute(insert_string):
 			count = row[0]
 
-		for row in self.con.execute("SELECT id_performer FROM performers WHERE name= ? ",(song.performer,)):
-			id_performer = row[0]
-
-		for row in self.con.execute("SELECT id_album FROM albums WHERE name= ? ",(song.album,)):
-			id_album = row[0]
-		
 		if count == 0:
+			for row in self.con.execute("SELECT id_performer FROM performers WHERE name= ? ",(song.performer,)):
+				id_performer = row[0]
+
+			for row in self.con.execute("SELECT id_album FROM albums WHERE name= ? ",(song.album,)):
+				id_album = row[0]
 			self.insert_into_table('rolas',(id_performer,id_album,song.songpath,song.title,song.track_number,
 											song.recording_time,song.genre),'id_performer,id_album,path,' +
 											'title,track,year,genre')
 
 	def get_songs_list(self):
-		song_paths = []
+		songs = []
 		for row in self.con.execute("SELECT path FROM rolas"):
-			song = Song(row[0])
-			song_paths.append(song)
-		return song_paths
+			path = row[0]
+			song = Song(path)
+			song_data = None
+			performer = None
+			album = None
+			for row in self.con.execute("SELECT id_performer, id_album, title, track, year, genre " +
+										"FROM rolas WHERE path = (?)",(path,)):
+				song_data = row
+			for row in self.con.execute("SELECT name FROM performers WHERE id_performer = (?)",(song_data[0],)):
+				performer = row[0]
+			for row in self.con.execute("SELECT name FROM albums WHERE id_album = (?)",(song_data[1],)):
+				album = row[0]
+			song.performer = performer
+			song.title = song_data[2]
+			song.album = album
+			song.recording_time = song_data[4]
+			song.genre = song_data[5]
+			song.track_number = song_data[3]
+			songs.append(song)
+		return songs
 
 	def search_songs(self,query):
 		songs = []
+		paths = []
+		performers = {}
 		for row in self.con.execute("SELECT path FROM rolas WHERE title LIKE ?",("%" + query + "%",)):
-			song = Song(row[0])
+			path = row[0]
+			song = Song(path)
+			paths.append(path)
 			songs.append(song)
+		for id in self.con.execute("SELECT id_performer FROM performers WHERE name LIKE ?",("%" + query + "%",)):
+			for row in self.con.execute("SELECT path FROM rolas WHERE id_performer = (?)",(id[0],)):
+				path = row[0]
+				song = Song(path)
+				if song.songpath not in paths:
+					paths.append(path)
+					songs.append(song)
+		for id in self.con.execute("SELECT id_album FROM albums WHERE name LIKE ?",("%" + query + "%",)):
+			for row in self.con.execute("SELECT path FROM rolas WHERE id_album = (?)",(id[0],)):
+				path = row[0]
+				song = Song(path)
+				if song.songpath not in paths:
+					paths.append(path)
+					songs.append(song)
+		for song in songs:
+			if song.performer not in performers:
+				performer_songs = []
+				performers[song.performer] = performer_songs
+			else:
+				performers[song.performer].append(song)
+		songs = []
+		for performer in performers:
+			for song in performers[performer]:
+				songs.append(song)
 		return songs
 
 	def close(self):
